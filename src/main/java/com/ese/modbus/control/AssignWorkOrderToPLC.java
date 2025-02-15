@@ -1,5 +1,6 @@
 package com.ese.modbus.control;
 
+import com.ese.modbus.Main;
 import com.ese.modbus.bean.*;
 import com.ese.modbus.dao.PLCAddressMapManagement;
 import com.ese.modbus.dao.WorkorderFgManagement;
@@ -9,10 +10,15 @@ import com.ese.modbus.io.ModbusStringClient;
 import com.ghgande.j2mod.modbus.Modbus;
 import org.hibernate.jdbc.Work;
 
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class AssignWorkOrderToPLC {
+    java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Main.class.getName());
 
     Workorder wo;
     List<Workorder> woList = new ArrayList<Workorder>();
@@ -27,32 +33,37 @@ public class AssignWorkOrderToPLC {
     List<WorkorderMaterial> woMatList = new ArrayList<WorkorderMaterial>();
     WorkorderMaterialManagement womm = new WorkorderMaterialManagement();
 
+    String totalLenght = "";
     Machine machine;
 
-    public AssignWorkOrderToPLC(Machine machine){
-        System.out.println("AssignWorkOrderToPLC");
+    public AssignWorkOrderToPLC(Machine machine) {
+
         this.machine = machine;
-        getWorkorder();
-        System.out.println("woList Size "+woList.size());
+//        while (true){
+            getWorkorder();
 
+            logger.info("woList Size " + woList.size());
 //        for(int i = 0; i < woList.size(); i++){   //for many workorder
-        for(int i = 0; i < 1; i++){
-            wo = woList.get(i);
-            String job = pam.getFreeAddress(machine);
-            System.out.println("Job "+job);
-            plcMapList = pam.getPLCList(machine, job);
-            woFgList = wofgM.getWorkorderFG(woList.get(i));
-            woMatList = womm.getWorkorderFGList(wo);
 
-            System.out.println("woFgList Size "+woFgList.size());
-            System.out.println("plcMapList Size "+plcMapList.size());
+            if(woList.size() > 0){
+            for (int i = 0; i < 1; i++) {
+                wo = woList.get(i);
+                    String job = pam.getFreeAddress(machine);
+                    logger.info("Job " + job);
 
-            for(int j = 0; j <= woFgList.size(); j++){
-                WorkorderFg wofg = new WorkorderFg();
+                    plcMapList = pam.getPLCList(machine, job);
+                    woFgList = wofgM.getWorkorderFG(woList.get(i));
+                    woMatList = womm.getWorkorderFGList(wo);
 
-                String dataSet = "";
-                if(j == 0){
-                    dataSet = setHeader();
+                    logger.info("woFgList Size " + woFgList.size());
+                    logger.info("plcMapList Size " + plcMapList.size());
+
+                    for (int j = 0; j <= woFgList.size(); j++) {
+                        WorkorderFg wofg = new WorkorderFg();
+
+                        String dataSet = "";
+                        if (j == 0) {
+                            dataSet = setHeader();
 //                }else if(j == 1){
 //                    dataSet = setSpecoil();
 //                }else if(j == 2){
@@ -61,26 +72,39 @@ public class AssignWorkOrderToPLC {
 //                    dataSet = setTotalLength();
 //                }else if(j == 4){
 //                    dataSet = setFlag();
-                }else{
-                    wofg = woFgList.get(j-1);
-                    dataSet = setJobList(wofg);
-                }
-                System.out.println("dataSet "+dataSet);
+                        } else {
+                            wofg = woFgList.get(j - 1);
+                            dataSet = setJobList(wofg);
+                        }
+                        logger.info("dataSet " + dataSet +" PLCMapList "+plcMapList.get(j).getInfo()+"  "+Integer.parseInt(plcMapList.get(j).getModbusAddress()));
+
+//                System.out.println("address "+Integer.parseInt(plcMapList.get(j).getModbusAddress()));
+
+//                sendToModbusServer(machine.getIpAddress(), Integer.parseInt(plcMapList.get(j).getModbusAddress()), dataSet);  //Remark NOV272024
+
+                        sendToModbusServer(machine.getIpAddress(), Integer.parseInt(plcMapList.get(j).getModbusAddress()), dataSet);
 
 
-                sendToModbusServer(machine.getIpAddress(), Integer.parseInt(plcMapList.get(j).getModbusAddress()), dataSet);
+
 //                sendToModbusServer("127.0.0.1", Integer.parseInt(plcMapList.get(j).getModbusAddress()), dataSet);   //test
+
+                    }
+
+                    //send total lenght to modbus server Address 406020-6784
+//            sendToModbusServer(machine.getIpAddress(), 400236, wo.getTotalMeter().toString());    //Remark DEC012024
+//            patchWorkorderStatus();   //update workorder status with api
+//                    wo.setStatus(4);  //DEC132024
+//                    wom.updateWorkorderStatus(wo);  //update workorder status without api
+                }
 
             }
 
-            //send total lenght to modbus server Address 406020-6784
-            sendToModbusServer(machine.getIpAddress(), 400236, wo.getTotalMeter().toString());
-        }
+
     }
 
-    public void sendToModbusServer(String ip, int modbusAddress, String data){
-        System.out.println("sendToModbusServer");
+    public void sendToModbusServer(String ip, int modbusAddress, String data) {
         ModbusStringClient client = new ModbusStringClient(ip, Modbus.DEFAULT_PORT, modbusAddress, data); // Replace with your PLC IP
+
 
         try {
             client.connect();
@@ -89,18 +113,98 @@ public class AssignWorkOrderToPLC {
             // modbus address 401001-6784 = 394217
             //client.writeString(394217, "2506PR00013400IM-AL-3540-914-150-55006052411");
             int addr = modbusAddress;   //SEP212024
-            System.out.println("Modbus Address "+addr);
-            client.writeString(addr, data);   //SEP212024
+            logger.info("Modbus Address " + addr);
+            client.writeString(addr, data);   //Remark Send Data
+ /*         // Clear All Data (Job Lise, Item List)
+            client.writeString(394217,  "                                                                                            ");
+            client.writeString(394239,  "                                                                                            ");
+            client.writeString(394254,  "                                                                                            ");
+            client.writeString(394269,  "                                                                                            ");
+            client.writeString(394284,  "                                                                                            ");
+            client.writeString(394299,  "                                                                                            ");
+            client.writeString(394314,  "                                                                                            ");
+            client.writeString(394329,  "                                                                                            ");
+            client.writeString(394344,  "                                                                                            ");
+            client.writeString(394359,  "                                                                                            ");
+            client.writeString(394374,  "                                                                                            ");
+            client.writeString(394387,  "                                                                                            ");
+            client.writeString(394401,  "                                                                                            ");
+            client.writeString(394415,  "                                                                                            ");
+            client.writeString(394429,  "                                                                                            ");
+            client.writeString(394443,  "                                                                                            ");
+            client.writeString(394457,  "                                                                                            ");
+            client.writeString(394471,  "                                                                                            ");
+            client.writeString(394485,  "                                                                                            ");
+            client.writeString(394499,  "                                                                                            ");
+            client.writeString(394513,  "                                                                                            ");
+            client.writeString(394526,  "                                                                                            ");
+            client.writeString(394540,  "                                                                                            ");
+            client.writeString(394554,  "                                                                                            ");
+            client.writeString(394568,  "                                                                                            ");
+            client.writeString(394582,  "                                                                                            ");
+            client.writeString(394596,  "                                                                                            ");
+            client.writeString(394610,  "                                                                                            ");
+            client.writeString(394624,  "                                                                                            ");
+            client.writeString(394638,  "                                                                                            ");
+            client.writeString(394652,  "                                                                                            ");
+            client.writeString(400236,  "                                                                                            ");
+*/
 
             String readStr = client.readString(addr, data.length()); // Adjust the register count based on the length of the string
 //            String readStr = client.readString(399217, 200); // for force data
-            System.out.println("Address "+addr+" Read String: " + readStr);
+            logger.info("data.length() "+data.length()+" Address " + addr + " Read String: " + readStr);
 
             client.disconnect();
+//            if(readStr.equals(data)){
+                wo.setStatus(4);
+                wom.updateWorkorderStatus(wo);  //update workorder status without api
+//            }
+
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.info(e.toString());
         }
 
+
+    }
+
+    public boolean patchWorkorderStatus() {
+        boolean result = false;
+//        String url = "https://api.example.com/resource/1";
+        String url = "http://metalbuilding.thaiddns.com:8080/MBTService/api/patchWorkorderStatus/";
+        try {
+            // Open connection
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+
+            // Set request method to PATCH
+            connection.setRequestMethod("PATCH");
+
+            // Set headers
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Authorization", "Bearer your-token-here");
+
+            // Enable output to send request body
+            connection.setDoOutput(true);
+
+            // JSON body for partial update
+//            String jsonInputString = "{\"age\": 36}";ß
+            String jsonInputString = "{\"workOrderId\": " + wo.getId() + ",\"stakeholderId\": 3,\"status\":4}";
+
+            // Write request body
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            // Read response code
+            int responseCode = connection.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            connection.disconnect();
+
+        } catch (Exception e) {
+            logger.info(e.toString());
+        }
+        return result;
     }
 
 
@@ -153,9 +257,11 @@ public class AssignWorkOrderToPLC {
         if(totalItem.length() < 2){
             totalItem = "0"+totalItem;
         }
-        System.out.println("Total Item "+totalItem);
+        logger.info("Total Item "+totalItem);
 
-        String totalLenght = wo.getTotalMeter().toString();
+        totalLenght = wo.getTotalMeter().toString();
+        sendToModbusServer(machine.getIpAddress(), 399116, totalLenght);    //Remark JAN192024 Fix Modbus Address for Total Lenght
+
         if(totalLenght.length() <4) {
             switch (totalLenght.length()) {
                 case 3:
@@ -176,11 +282,12 @@ public class AssignWorkOrderToPLC {
         String tFlag = "1";
         String gFlag = "1";
 
-        System.out.println("prqId "+prqId.length()+" specCoil "+specCoil.length()+" totalItem "+totalItem.length()+" tFlag "+tFlag+" gFlag "+gFlag);
+        logger.info("prqId "+prqId.length()+" specCoil "+specCoil.length()+" totalItem "+totalItem.length()+" totalLenght"+totalLenght+ "Flag "+tFlag+" gFlag "+gFlag);
         header = prqId+specCoil+totalItem+totalLenght+tFlag+gFlag;
 //        header = "                                                                     "; //Clear Data
 
-        System.out.println("header "+header.length()+" "+header);
+        logger.info("header "+header.length()+" "+header);
+
 
         return header;
     }
@@ -211,8 +318,12 @@ public class AssignWorkOrderToPLC {
 
         double fgL = woFg.getFgLenght()*1000;
         String fgLength = fgL+"";
+        fgLength = fgLength.substring(0, fgLength.length() - 2);
+
+//        System.out.println("lenght "+fgLength.length());
 //        String replaceSpace = " ";
 //        fgLength = fgLength.replace(".", replaceSpace);
+
 
         if(fgLength.length() == 5){
             fgLength = " "+fgLength;
@@ -235,11 +346,11 @@ public class AssignWorkOrderToPLC {
             qty = "   "+qty;
         }
 
-        System.out.println("fgSpec "+fgSpec.length()+" fgLength "+fgLength.length()+" qty "+qty.length());
+//        System.out.println("fgSpec "+fgSpec.length()+" fgLength "+fgLength.length()+" qty "+qty.length());
         jobList = fgSpec+fgLength+qty;
 //Clear Datas
 //        jobList = "                                                                                                                                                                                                                                                                                                                                                                                    ";
-        System.out.println("jobList "+jobList);
+//        System.out.println("jobList "+jobList);
         return jobList;
     }
 

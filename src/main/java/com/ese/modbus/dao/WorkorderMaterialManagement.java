@@ -1,5 +1,6 @@
 package com.ese.modbus.dao;
 
+import com.ese.modbus.Main;
 import com.ese.modbus.bean.Workorder;
 import com.ese.modbus.bean.WorkorderMaterial;
 import com.ese.modbus.connection.ConnectPostgresql;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class WorkorderMaterialManagement {
+    java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Main.class.getName());
 
     public List<WorkorderMaterial> getWorkorderFGList(Workorder wo) {
         List<WorkorderMaterial> workorderList = new ArrayList<WorkorderMaterial>();
@@ -23,6 +25,8 @@ public class WorkorderMaterialManagement {
             Statement stat = conn.createStatement();
             String sql = "";
             sql += "select * from workorder_material where workorder_id ="+wo.getId();
+
+            logger.info(sql);
 
             ResultSet rs = stat.executeQuery(sql);
             while(rs.next()) {

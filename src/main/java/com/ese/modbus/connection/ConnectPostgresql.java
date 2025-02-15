@@ -6,8 +6,8 @@ import java.sql.SQLException;
 
 public class ConnectPostgresql {
 //    private static final String DB_URL = "jdbc:postgresql://18.207.187.82:5432/mbtproduction";  //test
-    private static final String DB_URL = "jdbc:postgresql://192.168.10.10:5432/mbtproduction";
-//    private static final String DB_URL = "jdbc:postgresql://metalbuilding.thaiddns.com:5432/mbtproduction";
+//    private static final String DB_URL = "jdbc:postgresql://192.168.10.10:5432/mbtproduction";    //MBT LAN
+    private static final String DB_URL = "jdbc:postgresql://metalbuilding.thaiddns.com:5432/mbtproduction";
 
     private static final String USER = "postgres";
     private static final String PASS = "esepostgres";

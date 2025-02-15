@@ -1,6 +1,7 @@
 package com.ese.modbus.dao;
 
 
+import com.ese.modbus.Main;
 import com.ese.modbus.bean.Machine;
 import com.ese.modbus.connection.ConnectPostgresql;
 
@@ -12,7 +13,7 @@ import java.util.List;
 
 
 public class MachineManagement {
-//    Logger logger = LogManager.getLogger(String.valueOf(this.getClass()));
+    java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Main.class.getName());
 
 
     public List<Machine> getMachineList(){
@@ -26,7 +27,7 @@ public class MachineManagement {
             Statement stat = conn.createStatement();
             String sql = "";
             sql += "select * from machine where is_valid = true";
-
+            logger.info(sql);
             ResultSet rs = stat.executeQuery(sql);
             while(rs.next()) {
                 Machine mc = new Machine();
@@ -40,7 +41,7 @@ public class MachineManagement {
             conn.close();
             condb.closeConnectionDB();
         } catch (Exception e) {
-            System.out.println(e);
+            logger.info(e.toString());
         }
 
         return machineList;

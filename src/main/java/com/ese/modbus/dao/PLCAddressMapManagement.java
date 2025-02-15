@@ -1,5 +1,6 @@
 package com.ese.modbus.dao;
 
+import com.ese.modbus.Main;
 import com.ese.modbus.bean.Machine;
 import com.ese.modbus.bean.PLCAddressMap;
 import com.ese.modbus.bean.Workorder;
@@ -13,6 +14,7 @@ import java.util.List;
 
 public class PLCAddressMapManagement {
 
+    java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Main.class.getName());
 
     public List<PLCAddressMap> getPLCMapList(Machine mc){
         List<PLCAddressMap> plcMapList = new ArrayList<PLCAddressMap>();
@@ -26,6 +28,7 @@ public class PLCAddressMapManagement {
             String sql = "";
             sql += "select * from vw_machine_plc_mapping where machine_id ="+mc.getId();
 
+            logger.info(sql);
 
             ResultSet rs = stat.executeQuery(sql);
             while(rs.next()) {
@@ -43,7 +46,7 @@ public class PLCAddressMapManagement {
             conn.close();
             condb.closeConnectionDB();
         } catch (Exception e) {
-            System.out.println(e);
+            logger.info(e.toString());
         }
 
         return plcMapList;
@@ -54,7 +57,7 @@ public class PLCAddressMapManagement {
         List<PLCAddressMap> plcMapList = new ArrayList<PLCAddressMap>();
 
 
-        System.out.println("getPLCList "+mc.getId()+" "+job);
+        logger.info(mc.getId()+" "+job);
         Statement stm = null;
         try {
             ConnectPostgresql condb = new ConnectPostgresql();
@@ -67,7 +70,7 @@ public class PLCAddressMapManagement {
             sql += " and info like '"+job+"%'";
             sql += " and inside_data = ''";
 
-            System.out.println("sql "+sql);
+            logger.info(sql);
 
             ResultSet rs = stat.executeQuery(sql);
             while(rs.next()) {
@@ -87,7 +90,7 @@ public class PLCAddressMapManagement {
             conn.close();
             condb.closeConnectionDB();
         } catch (Exception e) {
-            System.out.println(e);
+            logger.info(e.toString());
         }
 
         return plcMapList;
@@ -109,6 +112,7 @@ public class PLCAddressMapManagement {
             sql += " and info like '%header' and inside_data = ''";
             sql += " limit 1";
 
+            logger.info(sql);
 
             ResultSet rs = stat.executeQuery(sql);
             while(rs.next()) {
@@ -118,7 +122,7 @@ public class PLCAddressMapManagement {
             conn.close();
             condb.closeConnectionDB();
         } catch (Exception e) {
-            System.out.println(e);
+            logger.info(e.toString());
         }
 
         return job;
